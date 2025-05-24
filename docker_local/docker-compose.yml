@@ -1,0 +1,95 @@
+version: '3.9'
+name: teletype_test_task
+networks:
+  teletype-service:
+    driver: bridge
+
+services:
+  app:
+    build:
+      context: ./php
+    container_name: teletype-app
+    extra_hosts:
+        - 'host.docker.internal:host-gateway'
+    environment:
+        PHP_IDE_CONFIG: 'serverName=teletype-app'
+    volumes:
+      - ../:/var/www/app
+    command: >
+      sh -c '
+        composer install && php artisan key:generate && php artisan octane:start --host=0.0.0.0 --port=8000 --server=swoole
+      '
+    ports:
+      - "11100:8000"
+    networks:
+      - teletype-service
+
+  db:
+    image: postgres:13.3
+    container_name: auth-postgres
+    restart: unless-stopped
+    environment:
+        POSTGRES_DB: teletype-db
+        POSTGRES_USER: root
+        POSTGRES_PASSWORD: pass
+        PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+        - postgres:/var/lib/postgresql/data/pgdata
+    ports:
+        - "11132:5432"
+    networks:
+        - teletype-service
+
+  nginx:
+    image: nginx:latest
+    container_name: teletype-nginx
+    networks:
+      - teletype-service
+    ports:
+      - "11180:80"
+      - "11443:443"
+    depends_on:
+      - app
+
+  redis:
+    image: redis:latest
+    container_name: teletype-redis
+    ports:
+      - "11163:6379"
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_USER=${REDIS_USER}
+      - REDIS_USER_PASSWORD=${REDIS_USER_PASSWORD}
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    command: >
+      sh -c '
+        mkdir -p /usr/local/etc/redis &&
+        echo "bind 0.0.0.0" > /usr/local/etc/redis/redis.conf &&
+        echo "requirepass $REDIS_PASSWORD" >> /usr/local/etc/redis/redis.conf &&
+        echo "appendonly yes" >> /usr/local/etc/redis/redis.conf &&
+        echo "appendfsync everysec" >> /usr/local/etc/redis/redis.conf &&
+        echo "user default on nopass ~* +@all" > /usr/local/etc/redis/users.acl &&
+        echo "user $REDIS_USER on >$REDIS_USER_PASSWORD ~* +@all" >> /usr/local/etc/redis/users.acl &&
+        redis-server /usr/local/etc/redis/redis.conf --aclfile /usr/local/etc/redis/users.acl
+      '
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "$REDIS_PASSWORD", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    tty: true
+    stdin_open: true
+    networks:
+        - teletype-service
+
+volumes:
+    postgres:
+        driver: local

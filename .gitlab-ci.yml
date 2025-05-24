@@ -1,0 +1,9 @@
+stages:
+  - build
+
+build:
+  stage: build
+  script:
+    - "cd app"
+    - "docker build -t shaba.gitlab.yandexcloud.net:5050/shaba/auth ."
+    - "docker push shaba.gitlab.yandexcloud.net:5050/shaba/auth"
