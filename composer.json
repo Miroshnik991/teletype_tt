@@ -7,8 +7,10 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "ext-xdebug": "*",
         "laravel/framework": "^11.31",
-        "laravel/octane": "^2.6",
+        "laravel/octane": "^2.9",
+        "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.9"
     },
     "require-dev": {
@@ -29,7 +31,10 @@
             "Infrastructure\\": "app/Infrastructure/",
             "UI\\": "app/UI/",
             "Database\\Seeders\\": "database/seeders/"
-        }
+        },
+        "files": [
+            "app/Infrastructure/Helpers/helpers.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {
