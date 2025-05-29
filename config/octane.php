@@ -221,4 +221,14 @@ return [
 
     'max_execution_time' => 30,
 
+    'swoole' => [
+        'options' => [
+            'http_parse_post' => true,  // Критично для POST!
+            'package_max_length' => 100 * 1024 * 1024,
+            'log_level' => 0, // 0 = DEBUG, 1 = TRACE, 2 = INFO, 4 = WARNING, 8 = ERROR
+            'log_file' => storage_path('logs/swoole.log'),
+            'enable_coroutine' => true,
+            'hook_flags' => 1879048191,
+        ],
+    ],
 ];
